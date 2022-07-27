@@ -48,6 +48,7 @@ def run():
         }
         data = json.dumps(body).encode("utf8")
         headers = {
+            "Accept-Encoding": "gzip",
             "Connection": "Keep-Alive",
             "Content-Type": "application/json; charset=UTF-8",
             "Host": "api.cloudflareclient.com",
@@ -57,7 +58,7 @@ def run():
             f"https://api.cloudflareclient.com/v0a{digitString(3)}/reg", data, headers
         )
         with urllib.request.urlopen(req) as response:
-            return 1 if '"referral_count":1' in response.read().decode("utf8") else 0
+            return response.getcode()
     except Exception as e:
         return e
 
@@ -85,21 +86,13 @@ def plus(update, context):
     start = time.time()
     while True:
         result = run()
-        if result == 1:
+        if result == 200:
             g += 1
             retry = randomSleep()
             print(f"[:)] {g} GB 流量已成功添加到你的账户！")
             context.bot.send_message(
                 chat_id=chat_id,
                 text=f"🍺 {g} GB 流量已成功添加到您的账户！",
-            )
-        elif result == 0:
-            b += 1
-            retry = randomSleep()
-            print("[:(] 分享失败")
-            context.bot.send_message(
-                chat_id=chat_id,
-                text="👻 分享失败",
             )
         else:
             b += 1
