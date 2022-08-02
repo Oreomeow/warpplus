@@ -1,0 +1,12 @@
+[Unit]
+Description=Get WARP+ referral quote and notify users with Telegram Bot
+After=network.target
+
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+Type=simple
+WorkingDirectory=/root/warpplus
+ExecStart=/root/warpplus/warpplus
+Restart=always

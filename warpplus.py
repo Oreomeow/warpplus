@@ -13,10 +13,12 @@ import urllib.request
 
 from telegram.ext import CommandHandler, Updater
 
+with open("config.json", "r") as f:
+    config = json.load(f)
 # Telegram bot API Token (可在 @botfather 获取)
-TOKEN = ""
+TOKEN = config["TOKEN"]
 # WARP 应用内的设备 ID
-REFERRER = ""
+REFERRER = config["REFERRER"]
 
 
 def genString(num):
