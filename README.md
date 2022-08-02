@@ -1,13 +1,15 @@
 # WARP+ 推荐奖励 Telegram Bot
 
+![warpplus](https://socialify.git.ci/Oreomeow/warpplus/image?description=1&descriptionEditable=Get%20WARP%2B%20referral%20quote%20and%20notify%20users%20with%20Telegram%20Bot&font=Raleway&forks=1&issues=1&language=1&logo=https%3A%2F%2Fraw.githubusercontent.com%2FOreomeow%2Fwarpplus%2Fmain%2FLogo.png&pattern=Floating%20Cogs&pulls=1&stargazers=1&theme=Light)
+
 > 利用 **Telegram Bot** 获取 **WARP+** 推荐奖励流量并通知用户
 
 ## 功能 (Functions)
 
 - [x] 刷取一定次数
-    - [x] 不指定次数按 10～99 次刷取
-    - [x] 指定次数刷取
-    - [x] 刷取结果统计
+  - [x] 不指定次数按 10～99 次刷取
+  - [x] 指定次数刷取
+  - [x] 刷取结果统计
 - [ ] 设置定时任务
 - [ ] 查询当前流量
 - [ ] 支持他人刷取
@@ -35,16 +37,16 @@ pip3 install -r requirements.txt
 
 - 通过 WARP APP 获取 ID
 
-    [![WARP APP 图示](https://user-images.githubusercontent.com/62703343/136070323-47f2600a-13e4-4eb0-a64d-d7eb805c28e2.png)](https://github.com/fscarmen/warp)
+  [![WARP APP 图示](https://user-images.githubusercontent.com/62703343/136070323-47f2600a-13e4-4eb0-a64d-d7eb805c28e2.png)](https://github.com/fscarmen/warp)
 
-- 修改 `warpplus.py`
+- 修改 `config.json`
 
-    ```python
-    # Telegram bot API Token (可在 @botfather 获取）
-    TOKEN = “”
-    # WARP 应用内的设备 ID
-    REFERRER = “”
-    ```
+  ```json
+  {
+      "TOKEN": "# Telegram bot API Token (可在 @botfather 获取)",
+      "REFERRER": "# WARP 应用内的设备 ID"
+  }
+  ```
 
 ### 运行测试
 
@@ -78,7 +80,7 @@ python3 warpplus.py
 
 ## 命令 (Commands)
 
-```
+```text
 plus - 输入正整数指定刷取次数，否则随机刷取 10~99 次
 ```
 
