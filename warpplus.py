@@ -146,6 +146,12 @@ class WarpPlus(object):
             + f"🎉 成功率：{round(g / (g + b) * 100, 2)}%\n"
             + f"⏳ 总耗时：{round((end - start) / 60, 2)} min",
         )
+        time.sleep(retry)
+        logging.info(f"[*] 防 DD 休眠 {retry} 秒")
+        self._bot.send_message(
+            chat_id=chat_id,
+            text=f"🛏 防 DD 休眠 {retry} 秒",
+        )
 
 
 def start(update: Update, context: CallbackContext) -> None:
