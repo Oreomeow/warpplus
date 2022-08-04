@@ -163,7 +163,7 @@ def start(update: Update, context: CallbackContext) -> None:
     logging.info(f"[+] {name} ({user_id}) 正在使用 WARP+ 推荐奖励机器人")
     context.bot.send_message(
         chat_id=chat_id,
-        text=f"🤖 {name}，欢迎使用 WARP+ 推荐奖励机器人\n"
+        text=f"👋 {name}，欢迎使用 WARP+ 推荐奖励机器人\n"
         + f"你可以使用以下命令来控制机器人\n\n"
         + f"/start - 开始使用\n"
         + f"/plus - (<n>) 💂‍♂️管理员账号添加流量，不输入次数视为 +∞\n"
@@ -177,18 +177,18 @@ def start(update: Update, context: CallbackContext) -> None:
 def plus(update: Update, context: CallbackContext) -> None:
     chat_id = update.message.chat_id
     user_id = update.message.from_user.id
+    username = update.message.from_user.username
+    first_name = update.message.from_user.first_name
+    name = username if username else first_name
     if user_id != USER_ID:
-        name = update.message.from_user.username
-        if not name:
-            name = update.message.from_user.first_name
-        logging.error(f"[\] {name}({user_id}) 正在使用该命令，但 /plus 只允许管理员使用")
+        logging.error(f"[\] {name}({user_id}) | /plus 仅允许管理员使用！")
         return context.bot.send_message(
             chat_id=chat_id,
-            text="🚫 /plus 只允许管理员使用",
+            text="🚫 /plus 仅允许管理员使用！",
         )
     global RUNNING
     if RUNNING == True:
-        logging.error("[\] 请先 /stop 停止正在运行的任务！")
+        logging.error(f"[\] {name}({user_id}) | 请先 /stop 停止正在运行的任务！")
         return context.bot.send_message(
             chat_id=chat_id,
             text="🚫 请先 /stop 停止正在运行的任务！",
@@ -196,13 +196,13 @@ def plus(update: Update, context: CallbackContext) -> None:
     n = "".join(context.args)
     if not n:
         n = float("inf")
-        logging.warning("[!] 未输入数字，将进行无限次请求")
+        logging.warning(f"[!] {name}({user_id}) | 未输入数字，将进行无限次请求")
         context.bot.send_message(
             chat_id=chat_id,
             text="🛸 未输入数字，将进行无限次请求",
         )
     elif not n.isdigit() or n == "0":
-        logging.error("[×] 请输入一个正整数！")
+        logging.error(f"[×] {name}({user_id}) | 请输入一个正整数！")
         return context.bot.send_message(
             chat_id=chat_id,
             text="❌ 请输入一个正整数！",
@@ -226,24 +226,24 @@ def bind(update: Update, context: CallbackContext) -> None:
     name = username if username else first_name
     chat_type = update.message.chat.type
     if chat_type != "private":
-        logging.error(f"[\] {name}({user_id}) 正在使用该命令，但 /bind 只允许私聊使用")
+        logging.error(f"[\] {name}({user_id}) | /bind 仅允许私聊使用！")
         return context.bot.send_message(
             chat_id=chat_id,
-            text="🚫 /bind 只允许私聊使用",
+            text="🚫 /bind 仅允许私聊使用！",
         )
     referrer = "".join(context.args)
     if not re.match(r"^[a-z0-9-]{36}$", referrer):
-        logging.error("[×] 请输入一个正确的 referrer！")
+        logging.error(f"[×] {name}({user_id}) | 请输入一个正确的 referrer！")
         return context.bot.send_message(
             chat_id=chat_id,
             text="❌ 请输入一个正确的 referrer！",
         )
     task = WarpPlus(user_id)
     task._save_referrer(user_id, username, first_name, referrer)
-    logging.info(f"[√] {name}({user_id}) 绑定成功！")
+    logging.info(f"[√] {name}({user_id}) | 绑定成功")
     context.bot.send_message(
         chat_id=chat_id,
-        text=f"🔗 {name}({user_id}) 绑定成功！",
+        text=f"🔗 {name}({user_id}) | 绑定成功",
     )
 
 
@@ -255,32 +255,35 @@ def unbind(update: Update, context: CallbackContext) -> None:
     name = username if username else first_name
     task = WarpPlus(user_id)
     if task._del_referrer():
-        logging.info(f"[√] {name}({user_id}) 解绑成功！")
+        logging.info(f"[√] {name}({user_id}) | 解绑成功")
         context.bot.send_message(
             chat_id=chat_id,
-            text=f"🔓 {name}({user_id}) 解绑成功！",
+            text=f"🔓 {name}({user_id}) | 解绑成功",
         )
     else:
-        logging.warning(f"[!] {name}({user_id}) 无须解绑！")
+        logging.warning(f"[!] {name}({user_id}) | 无须解绑")
         context.bot.send_message(
             chat_id=chat_id,
-            text=f"👻 {name}({user_id}) 无须解绑！",
+            text=f"👻 {name}({user_id}) | 无须解绑",
         )
 
 
 def gift(update: Update, context: CallbackContext) -> None:
     chat_id = update.message.chat_id
+    user_id = update.message.from_user.id
+    username = update.message.from_user.username
+    first_name = update.message.from_user.first_name
+    name = username if username else first_name
     global RUNNING
     if RUNNING == True:
-        logging.error("[\] 请先 /stop 停止正在运行的任务！")
+        logging.error(f"[\] {name}({user_id}) | 请先 /stop 停止正在运行的任务！")
         return context.bot.send_message(
             chat_id=chat_id,
             text="🚫 请先 /stop 停止正在运行的任务！",
         )
-    user_id = update.message.from_user.id
     task = WarpPlus(user_id)
     if not task._referrer:
-        logging.error("[\] 请先私聊使用 /bind 绑定 WARP 应用内的设备 ID！")
+        logging.error(f"[\] {name}({user_id}) | 请先私聊使用 /bind 绑定 WARP 应用内的设备 ID！")
         return context.bot.send_message(
             chat_id=chat_id,
             text="🔑 请先私聊使用 /bind 绑定 WARP 应用内的设备 ID！",
@@ -292,20 +295,22 @@ def gift(update: Update, context: CallbackContext) -> None:
     if not n:
         if GIFT_LIMIT == 0:
             n = float("inf")
-            logging.warning("[!] 未输入数字，将进行无限次请求")
+            logging.warning(f"[!] {name}({user_id}) | 未输入数字，将进行无限次请求")
             context.bot.send_message(
                 chat_id=chat_id,
                 text="🛸 未输入数字，将进行无限次请求",
             )
         else:
             n = random.randint(1, GIFT_LIMIT)
-            logging.warning(f"[!] 未输入数字，最大限制为 {GIFT_LIMIT} 次，将进行 {n} 次请求")
+            logging.warning(
+                f"[!] {name}({user_id}) | 未输入数字，最大限制为 {GIFT_LIMIT} 次，将进行 {n} 次请求"
+            )
             context.bot.send_message(
                 chat_id=chat_id,
                 text=f"🎲 未输入数字，最大限制为 {GIFT_LIMIT} 次，将进行 {n} 次请求",
             )
     elif not n.isdigit() or n == "0":
-        logging.error("[×] 请输入一个正整数！")
+        logging.error(f"[×] {name}({user_id}) | 请输入一个正整数！")
         return context.bot.send_message(
             chat_id=chat_id,
             text="❌ 请输入一个正整数！",
@@ -313,7 +318,9 @@ def gift(update: Update, context: CallbackContext) -> None:
     else:
         n = int(n)
         if GIFT_LIMIT != 0 and n > GIFT_LIMIT:
-            logging.error(f"[×] 管理员开启了最大限制，请输入一个小于等于 {GIFT_LIMIT} 的正整数！")
+            logging.error(
+                f"[×] {name}({user_id}) | 管理员开启了最大限制，请输入一个小于等于 {GIFT_LIMIT} 的正整数！"
+            )
             return context.bot.send_message(
                 chat_id=chat_id,
                 text=f"🛡 管理员开启了最大限制，请输入一个小于等于 {GIFT_LIMIT} 的正整数！",
@@ -326,23 +333,23 @@ def gift(update: Update, context: CallbackContext) -> None:
 def stop(update: Update, context: CallbackContext) -> None:
     chat_id = update.message.chat_id
     user_id = update.message.from_user.id
+    username = update.message.from_user.username
+    first_name = update.message.from_user.first_name
+    name = username if username else first_name
     if user_id != USER_ID:
-        name = update.message.from_user.username
-        if not name:
-            name = update.message.from_user.first_name
-        logging.error(f"[\] {name}({user_id}) 正在使用该命令，但 /stop 只允许管理员使用")
+        logging.error(f"[\] {name}({user_id}) | /stop 只允许管理员使用！")
         return context.bot.send_message(
             chat_id=chat_id,
-            text="🚫 /stop 只允许管理员使用",
+            text="🚫 /stop 只允许管理员使用！",
         )
     global RUNNING
     if RUNNING == True:
-        logging.info("[-] WARP+ 推荐奖励任务终止")
+        logging.info(f"[-] {name}({user_id}) | WARP+ 推荐奖励任务终止")
         context.bot.send_message(chat_id=chat_id, text="🛑 WARP+ 推荐奖励任务终止")
         RUNNING = False
     else:
-        logging.warning("[\] 没有正在运行的任务！")
-        context.bot.send_message(chat_id=chat_id, text="⚠️ 没有正在运行的任务！")
+        logging.warning(f"[\] {name}({user_id}) | 没有正在运行的任务")
+        context.bot.send_message(chat_id=chat_id, text="⚠️ 没有正在运行的任务")
 
 
 def main():
