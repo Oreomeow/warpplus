@@ -7,12 +7,13 @@
 ## 功能 (Functions)
 
 - [x] 刷取一定次数
-  - [x] 不指定次数按 10～99 次刷取
+  - [x] 不指定次数按 +∞ 刷取
   - [x] 指定次数刷取
   - [x] 刷取结果统计
+- [x] 添加管理命令
+- [x] 支持他人刷取
 - [ ] 设置定时任务
 - [ ] 查询当前流量
-- [ ] 支持他人刷取
 - [ ] 支持多种语言
 
 ## 部署 (Deploy)
@@ -43,8 +44,9 @@ pip3 install -r requirements.txt
 
   ```json
   {
-      "TOKEN": "# Telegram bot API Token (可在 @botfather 获取)",
-      "REFERRER": "# WARP 应用内的设备 ID"
+      "TOKEN": "Telegram bot API Token (可在 @botfather 获取，如 10xxx4:AAFcqxxxxgER5uw)",
+      "REFERRER": "# WARP 应用内的设备 ID",
+      "USER_ID": "Telegram 用户 ID (给 @getidsbot 发送 /start 获取到的纯数字 ID，如 1434078534)"
   }
   ```
 
@@ -81,7 +83,12 @@ python3 warpplus.py
 ## 命令 (Commands)
 
 ```text
-plus - 输入正整数指定刷取次数，否则随机刷取 10~99 次
+start - 开始使用
+plus - (<n>) 💂‍♂️管理员账号添加流量，不输入次数视为 +∞
+bind - <referrer> 绑定账号
+unbind - 解除绑定
+gift - (<n>) 获取流量，不输入次数视为 +∞
+stop - 💂‍♂️管理员停止运行中的任务
 ```
 
 ## 鸣谢 (Thanks)
