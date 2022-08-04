@@ -157,12 +157,12 @@ def start(update: Update, context: CallbackContext) -> None:
         chat_id=chat_id,
         text=f"🤖 {name}，欢迎使用 WARP+ 推荐奖励机器人\n"
         + f"你可以使用以下命令来控制机器人\n\n"
-        + f"/start  -  开始使用\n"
-        + f"/plus (<n>)  -  💂‍♂️管理员账号添加流量，不输入次数视为 +∞\n"
-        + f"/bind <referrer>  -  绑定账号\n"
-        + f"/unbind  -  解除绑定\n"
-        + f"/gift (<n>)  -  获取流量，不输入次数视为 +∞\n"
-        + f"/stop  -  💂‍♂️管理员停止运行中的任务\n",
+        + f"/start - 开始使用\n"
+        + f"/plus - (<n>) 💂‍♂️管理员账号添加流量，不输入次数视为 +∞\n"
+        + f"/bind - <referrer> 绑定账号\n"
+        + f"/unbind - 解除绑定\n"
+        + f"/gift - (<n>) 获取流量，不输入次数视为 +∞\n"
+        + f"/stop - 💂‍♂️管理员停止运行中的任务\n",
     )
 
 
