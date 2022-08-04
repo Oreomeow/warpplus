@@ -207,6 +207,7 @@ def plus(update: Update, context: CallbackContext) -> None:
     task._referrer = REFERRER
     RUNNING = True
     task.run(n)
+    RUNNING = False
 
 
 def bind(update: Update, context: CallbackContext) -> None:
