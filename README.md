@@ -92,6 +92,10 @@ gift - (<n>) 获取流量，不输入次数视为 +∞
 stop - 💂‍♂️管理员停止运行中的任务
 ```
 
+## 贡献 (Contributors)
+
+- [Silentely](https://github.com/Silentely)
+
 ## 鸣谢 (Thanks)
 
 - [ALIILAPRO/warp-plus-cloudflare](https://github.com/ALIILAPRO/warp-plus-cloudflare)
