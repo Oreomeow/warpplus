@@ -1,0 +1,5 @@
+{
+    "TOKEN": "Telegram bot API Token (可在 @botfather 获取，如 10xxx4:AAFcqxxxxgER5uw)",
+    "REFERRER": "# WARP 应用内的设备 ID",
+    "USER_ID": "Telegram 用户 ID (给 @getidsbot 发送 /start 获取到的纯数字 ID，如 1434078534)"
+}
