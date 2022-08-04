@@ -166,10 +166,10 @@ class WarpPlus(object):
         end = time.time()
         logging.info(
             f"[*] {name} ({user_id}) | "
-            + "📊 WARP+ 推荐奖励统计\n"
-            + f"📟 总次数：{g} 次成功 {b} 次失败\n"
-            + f"🎉 成功率：{round(g / (g + b) * 100, 2)}%\n"
-            + f"⏳ 总耗时：{round((end - start) / 60, 2)} min"
+            + "WARP+ 推荐奖励统计\n"
+            + f"总次数：{g} 次成功 {b} 次失败\n"
+            + f"成功率：{round(g / (g + b) * 100, 2)}%\n"
+            + f"总耗时：{round((end - start) / 60, 2)} min"
         )
         self._bot.send_message(
             chat_id=chat_id,
@@ -250,8 +250,7 @@ def plus(update: Update, context: CallbackContext) -> None:
             )
         except error.TelegramError:
             pass
-        finally:
-            return
+        return
     global RUNNING
     if RUNNING == True:
         logging.error(f"[\] {name}({user_id}) | 请先 /stop 停止正在运行的任务！")
@@ -268,8 +267,7 @@ def plus(update: Update, context: CallbackContext) -> None:
             )
         except error.TelegramError:
             pass
-        finally:
-            return
+        return
     n = "".join(context.args)
     if not n:
         n = float("inf")
@@ -292,8 +290,7 @@ def plus(update: Update, context: CallbackContext) -> None:
             )
         except error.TelegramError:
             pass
-        finally:
-            return
+        return
     else:
         n = int(n)
         logging.info(f"[*] {name}({user_id}) | 将进行 {n} 次请求")
@@ -328,8 +325,7 @@ def bind(update: Update, context: CallbackContext) -> None:
             )
         except error.TelegramError:
             pass
-        finally:
-            return
+        return
     referrer = "".join(context.args)
     if not re.match(r"^[a-z0-9-]{36}$", referrer):
         logging.error(f"[×] {name}({user_id}) | 请输入一个正确的 referrer！")
@@ -345,8 +341,7 @@ def bind(update: Update, context: CallbackContext) -> None:
             )
         except error.TelegramError:
             pass
-        finally:
-            return
+        return
     task = WarpPlus(user_id)
     task._save_referrer(user_id, username, first_name, referrer)
     logging.info(f"[√] {name}({user_id}) | 绑定成功")
@@ -399,8 +394,7 @@ def gift(update: Update, context: CallbackContext) -> None:
             )
         except error.TelegramError:
             pass
-        finally:
-            return
+        return
     task = WarpPlus(user_id)
     if not task._referrer:
         logging.error(f"[\] {name}({user_id}) | 请先私聊使用 /bind 绑定 WARP 应用内的设备 ID！")
@@ -417,8 +411,7 @@ def gift(update: Update, context: CallbackContext) -> None:
             )
         except error.TelegramError:
             pass
-        finally:
-            return
+        return
     task._bot = context.bot
     task._update = update
     n = "".join(context.args)
@@ -454,8 +447,7 @@ def gift(update: Update, context: CallbackContext) -> None:
             )
         except error.TelegramError:
             pass
-        finally:
-            return
+        return
     else:
         n = int(n)
         if GIFT_LIMIT != 0 and n > GIFT_LIMIT:
@@ -474,8 +466,7 @@ def gift(update: Update, context: CallbackContext) -> None:
                 )
             except error.TelegramError:
                 pass
-            finally:
-                return
+            return
         logging.info(f"[*] {name}({user_id}) | 将进行 {n} 次请求")
     RUNNING = True
     task.run(n)
@@ -503,8 +494,7 @@ def stop(update: Update, context: CallbackContext) -> None:
             )
         except error.TelegramError:
             pass
-        finally:
-            return
+        return
     global RUNNING
     if RUNNING == True:
         logging.info(f"[-] {name}({user_id}) | WARP+ 推荐奖励任务终止")
@@ -518,12 +508,12 @@ def stop(update: Update, context: CallbackContext) -> None:
 def main():
     updater = Updater(TOKEN, use_context=True)
     dp = updater.dispatcher
-    dp.add_handler(CommandHandler("start", start))
+    dp.add_handler(CommandHandler("start", start, run_async=True))
     dp.add_handler(CommandHandler("plus", plus, run_async=True))
-    dp.add_handler(CommandHandler("bind", bind))
-    dp.add_handler(CommandHandler("unbind", unbind))
+    dp.add_handler(CommandHandler("bind", bind, run_async=True))
+    dp.add_handler(CommandHandler("unbind", unbind, run_async=True))
     dp.add_handler(CommandHandler("gift", gift, run_async=True))
-    dp.add_handler(CommandHandler("stop", stop))
+    dp.add_handler(CommandHandler("stop", stop, run_async=True))
     updater.start_polling()
     updater.idle()
 
