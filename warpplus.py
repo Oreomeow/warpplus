@@ -14,7 +14,7 @@ import string
 import time
 import urllib.request
 
-from telegram import Update
+from telegram import Update, error
 from telegram.ext import CallbackContext, CommandHandler, Updater
 
 logging.basicConfig(
@@ -42,6 +42,7 @@ class WarpPlus(object):
         self._config = {}
         self._bot = None
         self._update = None
+        self._message_id = None
         self._referrer = None
         self._get_referrer()
 
@@ -126,18 +127,38 @@ class WarpPlus(object):
                 g += 1
                 retry = WarpPlus.ran_sleep()
                 logging.info(f"[★] {name} ({user_id}) | {g} GB 流量已添加！")
-                self._bot.send_message(
-                    chat_id=chat_id,
-                    text=f"🍺 {g} GB 流量已添加！",
-                )
+                try:
+                    self._bot.delete_message(
+                        chat_id=chat_id,
+                        message_id=self._message_id,
+                    )
+                    self._message_id = self._bot.send_message(
+                        chat_id=chat_id,
+                        text=f"🍺 {g} GB 流量已添加！",
+                    ).message_id
+                except error.TelegramError:
+                    self._message_id = self._bot.send_message(
+                        chat_id=chat_id,
+                        text=f"🍺 {g} GB 流量已添加！",
+                    ).message_id
             else:
                 b += 1
                 retry = WarpPlus.ran_sleep(22.727153)
                 logging.info(f"[-] {name} ({user_id}) | {result}")
-                self._bot.send_message(
-                    chat_id=chat_id,
-                    text=f"⛔️ {result}",
-                )
+                try:
+                    self._bot.delete_message(
+                        chat_id=chat_id,
+                        message_id=self._message_id,
+                    )
+                    self._message_id = self._bot.send_message(
+                        chat_id=chat_id,
+                        text=f"⛔️ {result}",
+                    ).message_id
+                except error.TelegramError:
+                    self._message_id = self._bot.send_message(
+                        chat_id=chat_id,
+                        text=f"⛔️ {result}",
+                    ).message_id
             if g + b >= n:
                 break
             logging.info(f"[*] {name} ({user_id}) | 等待 {retry} 秒，下一个请求即将发出")
@@ -157,12 +178,27 @@ class WarpPlus(object):
             + f"🎉 成功率：{round(g / (g + b) * 100, 2)}%\n"
             + f"⏳ 总耗时：{round((end - start) / 60, 2)} min",
         )
-        time.sleep(retry)
-        logging.info(f"[*] {name} ({user_id}) | 防 DD 休眠 {retry} 秒")
-        self._bot.send_message(
+        logging.info(f"[*] {name} ({user_id}) | 开始防 DD 休眠 {retry} 秒")
+        message_id = self._bot.send_message(
             chat_id=chat_id,
-            text=f"🛏 防 DD 休眠 {retry} 秒",
-        )
+            text=f"🛏 开始防 DD 休眠 {retry} 秒",
+        ).message_id
+        time.sleep(retry)
+        logging.info(f"[*] {name} ({user_id}) | 防 DD 休眠结束")
+        try:
+            self._bot.delete_message(
+                chat_id=chat_id,
+                message_id=message_id,
+            )
+            self._bot.send_message(
+                chat_id=chat_id,
+                text="🛏 防 DD 休眠结束",
+            )
+        except error.TelegramError:
+            self._bot.send_message(
+                chat_id=chat_id,
+                text="🛏 防 DD 休眠结束",
+            )
 
 
 def start(update: Update, context: CallbackContext) -> None:
@@ -172,7 +208,7 @@ def start(update: Update, context: CallbackContext) -> None:
     first_name = update.message.from_user.first_name
     name = username if username else first_name
     logging.info(f"[+] {name} ({user_id}) | 欢迎使用 WARP+ 推荐奖励机器人")
-    context.bot.send_message(
+    message_id = context.bot.send_message(
         chat_id=chat_id,
         text=f"👋 {name}，欢迎使用 WARP+ 推荐奖励机器人\n"
         + f"你可以使用以下命令来控制机器人\n\n"
@@ -182,7 +218,15 @@ def start(update: Update, context: CallbackContext) -> None:
         + f"/unbind - 解除绑定\n"
         + f"/gift - (<n>) 获取流量，不输入次数视为 +∞\n"
         + f"/stop - 💂‍♂️管理员停止运行中的任务\n",
-    )
+    ).message_id
+    time.sleep(10)
+    try:
+        context.bot.delete_message(
+            chat_id=chat_id,
+            message_id=message_id,
+        )
+    except error.TelegramError:
+        pass
 
 
 def plus(update: Update, context: CallbackContext) -> None:
@@ -193,17 +237,39 @@ def plus(update: Update, context: CallbackContext) -> None:
     name = username if username else first_name
     if user_id != USER_ID:
         logging.error(f"[\] {name}({user_id}) | /plus 仅允许管理员使用！")
-        return context.bot.send_message(
+        message_id = context.bot.send_message(
             chat_id=chat_id,
-            text="🚫 /plus 仅允许管理员使用！",
-        )
+            text="🚫 `/plus` 仅允许管理员使用！",
+            parse_mode="Markdown",
+        ).message_id
+        time.sleep(5)
+        try:
+            context.bot.delete_message(
+                chat_id=chat_id,
+                message_id=message_id,
+            )
+        except error.TelegramError:
+            pass
+        finally:
+            return
     global RUNNING
     if RUNNING == True:
         logging.error(f"[\] {name}({user_id}) | 请先 /stop 停止正在运行的任务！")
-        return context.bot.send_message(
+        message_id = context.bot.send_message(
             chat_id=chat_id,
-            text="🚫 请先 /stop 停止正在运行的任务！",
-        )
+            text="🚫 请先 `/stop` 停止正在运行的任务！",
+            parse_mode="Markdown",
+        ).message_id
+        time.sleep(5)
+        try:
+            context.bot.delete_message(
+                chat_id=chat_id,
+                message_id=message_id,
+            )
+        except error.TelegramError:
+            pass
+        finally:
+            return
     n = "".join(context.args)
     if not n:
         n = float("inf")
@@ -214,12 +280,23 @@ def plus(update: Update, context: CallbackContext) -> None:
         )
     elif not n.isdigit() or n == "0":
         logging.error(f"[×] {name}({user_id}) | 请输入一个正整数！")
-        return context.bot.send_message(
+        message_id = context.bot.send_message(
             chat_id=chat_id,
             text="❌ 请输入一个正整数！",
-        )
+        ).message_id
+        time.sleep(5)
+        try:
+            context.bot.delete_message(
+                chat_id=chat_id,
+                message_id=message_id,
+            )
+        except error.TelegramError:
+            pass
+        finally:
+            return
     else:
         n = int(n)
+        logging.info(f"[*] {name}({user_id}) | 将进行 {n} 次请求")
     task = WarpPlus(user_id)
     task._bot = context.bot
     task._update = update
@@ -238,17 +315,38 @@ def bind(update: Update, context: CallbackContext) -> None:
     chat_type = update.message.chat.type
     if chat_type != "private":
         logging.error(f"[\] {name}({user_id}) | /bind 仅允许私聊使用！")
-        return context.bot.send_message(
+        message_id = context.bot.send_message(
             chat_id=chat_id,
-            text="🚫 /bind 仅允许私聊使用！",
-        )
+            text="🚫 `/bind` 仅允许私聊使用！",
+            parse_mode="Markdown",
+        ).message_id
+        time.sleep(5)
+        try:
+            context.bot.delete_message(
+                chat_id=chat_id,
+                message_id=message_id,
+            )
+        except error.TelegramError:
+            pass
+        finally:
+            return
     referrer = "".join(context.args)
     if not re.match(r"^[a-z0-9-]{36}$", referrer):
         logging.error(f"[×] {name}({user_id}) | 请输入一个正确的 referrer！")
-        return context.bot.send_message(
+        message_id = context.bot.send_message(
             chat_id=chat_id,
             text="❌ 请输入一个正确的 referrer！",
-        )
+        ).message_id
+        time.sleep(5)
+        try:
+            context.bot.delete_message(
+                chat_id=chat_id,
+                message_id=message_id,
+            )
+        except error.TelegramError:
+            pass
+        finally:
+            return
     task = WarpPlus(user_id)
     task._save_referrer(user_id, username, first_name, referrer)
     logging.info(f"[√] {name}({user_id}) | 绑定成功")
@@ -288,17 +386,39 @@ def gift(update: Update, context: CallbackContext) -> None:
     global RUNNING
     if RUNNING == True:
         logging.error(f"[\] {name}({user_id}) | 请先 /stop 停止正在运行的任务！")
-        return context.bot.send_message(
+        message_id = context.bot.send_message(
             chat_id=chat_id,
-            text="🚫 请先 /stop 停止正在运行的任务！",
-        )
+            text="🚫 请先 `/stop` 停止正在运行的任务！",
+            parse_mode="Markdown",
+        ).message_id
+        time.sleep(5)
+        try:
+            context.bot.delete_message(
+                chat_id=chat_id,
+                message_id=message_id,
+            )
+        except error.TelegramError:
+            pass
+        finally:
+            return
     task = WarpPlus(user_id)
     if not task._referrer:
         logging.error(f"[\] {name}({user_id}) | 请先私聊使用 /bind 绑定 WARP 应用内的设备 ID！")
-        return context.bot.send_message(
+        message_id = context.bot.send_message(
             chat_id=chat_id,
-            text="🔑 请先私聊使用 /bind 绑定 WARP 应用内的设备 ID！",
-        )
+            text="🔑 请先私聊使用 `/bind` 绑定 WARP 应用内的设备 ID！",
+            parse_mode="Markdown",
+        ).message_id
+        time.sleep(5)
+        try:
+            context.bot.delete_message(
+                chat_id=chat_id,
+                message_id=message_id,
+            )
+        except error.TelegramError:
+            pass
+        finally:
+            return
     task._bot = context.bot
     task._update = update
     n = "".join(context.args)
@@ -322,20 +442,41 @@ def gift(update: Update, context: CallbackContext) -> None:
             )
     elif not n.isdigit() or n == "0":
         logging.error(f"[×] {name}({user_id}) | 请输入一个正整数！")
-        return context.bot.send_message(
+        message_id = context.bot.send_message(
             chat_id=chat_id,
             text="❌ 请输入一个正整数！",
-        )
+        ).message_id
+        time.sleep(5)
+        try:
+            context.bot.delete_message(
+                chat_id=chat_id,
+                message_id=message_id,
+            )
+        except error.TelegramError:
+            pass
+        finally:
+            return
     else:
         n = int(n)
         if GIFT_LIMIT != 0 and n > GIFT_LIMIT:
             logging.error(
                 f"[×] {name}({user_id}) | 管理员开启了最大限制，请输入一个小于等于 {GIFT_LIMIT} 的正整数！"
             )
-            return context.bot.send_message(
+            message_id = context.bot.send_message(
                 chat_id=chat_id,
                 text=f"🛡 管理员开启了最大限制，请输入一个小于等于 {GIFT_LIMIT} 的正整数！",
-            )
+            ).message_id
+            time.sleep(5)
+            try:
+                context.bot.delete_message(
+                    chat_id=chat_id,
+                    message_id=message_id,
+                )
+            except error.TelegramError:
+                pass
+            finally:
+                return
+        logging.info(f"[*] {name}({user_id}) | 将进行 {n} 次请求")
     RUNNING = True
     task.run(n)
     RUNNING = False
@@ -349,10 +490,21 @@ def stop(update: Update, context: CallbackContext) -> None:
     name = username if username else first_name
     if user_id != USER_ID:
         logging.error(f"[\] {name}({user_id}) | /stop 只允许管理员使用！")
-        return context.bot.send_message(
+        message_id = context.bot.send_message(
             chat_id=chat_id,
-            text="🚫 /stop 只允许管理员使用！",
-        )
+            text="🚫 `/stop` 只允许管理员使用！",
+            parse_mode="Markdown",
+        ).message_id
+        time.sleep(5)
+        try:
+            context.bot.delete_message(
+                chat_id=chat_id,
+                message_id=message_id,
+            )
+        except error.TelegramError:
+            pass
+        finally:
+            return
     global RUNNING
     if RUNNING == True:
         logging.info(f"[-] {name}({user_id}) | WARP+ 推荐奖励任务终止")
