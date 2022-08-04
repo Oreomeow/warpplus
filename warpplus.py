@@ -28,7 +28,9 @@ TOKEN = config["TOKEN"]
 # WARP 应用内的设备 ID
 REFERRER = config["REFERRER"]
 # Telegram 用户 ID (给 @getidsbot 发送 /start 获取到的纯数字 ID，如 1434078534)
-USER_ID = config["USER_ID"]
+USER_ID = int(config["USER_ID"])
+# 限制其他用户单次刷取次数，如 10，不限制则输入 0
+GIFT_LIMIT = int(config["GIFT_LIMIT"])
 
 RUNNING = False
 
@@ -169,7 +171,7 @@ def start(update: Update, context: CallbackContext) -> None:
 def plus(update: Update, context: CallbackContext) -> None:
     chat_id = update.message.chat_id
     user_id = update.message.from_user.id
-    if user_id != int(USER_ID):
+    if user_id != USER_ID:
         name = update.message.from_user.username
         if not name:
             name = update.message.from_user.first_name
@@ -194,10 +196,10 @@ def plus(update: Update, context: CallbackContext) -> None:
             text="🛸 未输入数字，将进行无限次请求",
         )
     elif not n.isdigit() or n == "0":
-        logging.error("[!] 请输入一个正整数！")
+        logging.error("[×] 请输入一个正整数！")
         return context.bot.send_message(
             chat_id=chat_id,
-            text="⚠️ 请输入一个正整数！",
+            text="❌ 请输入一个正整数！",
         )
     else:
         n = int(n)
@@ -280,21 +282,36 @@ def gift(update: Update, context: CallbackContext) -> None:
     task._bot = context.bot
     task._update = update
     n = "".join(context.args)
+    global GIFT_LIMIT
     if not n:
-        n = float("inf")
-        logging.warning("[!] 未输入数字，将进行无限次请求")
-        context.bot.send_message(
-            chat_id=chat_id,
-            text="🛸 未输入数字，将进行无限次请求",
-        )
+        if GIFT_LIMIT == 0:
+            n = float("inf")
+            logging.warning("[!] 未输入数字，将进行无限次请求")
+            context.bot.send_message(
+                chat_id=chat_id,
+                text="🛸 未输入数字，将进行无限次请求",
+            )
+        else:
+            n = random.randint(1, GIFT_LIMIT)
+            logging.warning(f"[!] 未输入数字，最大限制为 {GIFT_LIMIT} 次，将进行 {n} 次请求")
+            context.bot.send_message(
+                chat_id=chat_id,
+                text=f"🎲 未输入数字，最大限制为 {GIFT_LIMIT} 次，将进行 {n} 次请求",
+            )
     elif not n.isdigit() or n == "0":
-        logging.error("[!] 请输入一个正整数！")
+        logging.error("[×] 请输入一个正整数！")
         return context.bot.send_message(
             chat_id=chat_id,
-            text="⚠️ 请输入一个正整数！",
+            text="❌ 请输入一个正整数！",
         )
     else:
         n = int(n)
+        if GIFT_LIMIT != 0 and n > GIFT_LIMIT:
+            logging.error(f"[×] 管理员开启了最大限制，请输入一个小于等于 {GIFT_LIMIT} 的正整数！")
+            return context.bot.send_message(
+                chat_id=chat_id,
+                text=f"🛡 管理员开启了最大限制，请输入一个小于等于 {GIFT_LIMIT} 的正整数！",
+            )
     RUNNING = True
     task.run(n)
 
@@ -302,7 +319,7 @@ def gift(update: Update, context: CallbackContext) -> None:
 def stop(update: Update, context: CallbackContext) -> None:
     chat_id = update.message.chat_id
     user_id = update.message.from_user.id
-    if user_id != int(USER_ID):
+    if user_id != USER_ID:
         name = update.message.from_user.username
         if not name:
             name = update.message.from_user.first_name

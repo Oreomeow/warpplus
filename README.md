@@ -44,9 +44,10 @@ pip3 install -r requirements.txt
 
   ```json
   {
-      "TOKEN": "Telegram bot API Token (可在 @botfather 获取，如 10xxx4:AAFcqxxxxgER5uw)",
+      "TOKEN": "# Telegram bot API Token (可在 @botfather 获取，如 10xxx4:AAFcqxxxxgER5uw)",
       "REFERRER": "# WARP 应用内的设备 ID",
-      "USER_ID": "Telegram 用户 ID (给 @getidsbot 发送 /start 获取到的纯数字 ID，如 1434078534)"
+      "USER_ID": "# Telegram 用户 ID (给 @getidsbot 发送 /start 获取到的纯数字 ID，如 1434078534)",
+      "GIFT_LIMIT": "# 限制其他用户单次刷取次数，如 10，不限制则输入 0"
   }
   ```
 
