@@ -314,6 +314,7 @@ def gift(update: Update, context: CallbackContext) -> None:
             )
     RUNNING = True
     task.run(n)
+    RUNNING = False
 
 
 def stop(update: Update, context: CallbackContext) -> None:
