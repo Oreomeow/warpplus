@@ -113,6 +113,10 @@ class WarpPlus(object):
 
     def run(self, n: float) -> None:
         chat_id = self._update.message.chat_id
+        user_id = self._update.message.from_user.id
+        username = self._update.message.from_user.username
+        first_name = self._update.message.from_user.first_name
+        name = username if username else first_name
         g = 0
         b = 0
         start = time.time()
@@ -121,7 +125,7 @@ class WarpPlus(object):
             if result == 200:
                 g += 1
                 retry = WarpPlus.ran_sleep()
-                logging.info(f"[★] {g} GB 流量已添加！")
+                logging.info(f"[★] {name} ({user_id}) | {g} GB 流量已添加！")
                 self._bot.send_message(
                     chat_id=chat_id,
                     text=f"🍺 {g} GB 流量已添加！",
@@ -129,16 +133,23 @@ class WarpPlus(object):
             else:
                 b += 1
                 retry = WarpPlus.ran_sleep(22.727153)
-                logging.info(f"[-] {result}")
+                logging.info(f"[-] {name} ({user_id}) | {result}")
                 self._bot.send_message(
                     chat_id=chat_id,
                     text=f"⛔️ {result}",
                 )
             if g + b >= n:
                 break
-            logging.info(f"[*] 等待 {retry} 秒，下一个请求即将发出")
+            logging.info(f"[*] {name} ({user_id}) | 等待 {retry} 秒，下一个请求即将发出")
             time.sleep(retry)
         end = time.time()
+        logging.info(
+            f"[*] {name} ({user_id}) | "
+            + "📊 WARP+ 推荐奖励统计\n"
+            + f"📟 总次数：{g} 次成功 {b} 次失败\n"
+            + f"🎉 成功率：{round(g / (g + b) * 100, 2)}%\n"
+            + f"⏳ 总耗时：{round((end - start) / 60, 2)} min"
+        )
         self._bot.send_message(
             chat_id=chat_id,
             text="📊 WARP+ 推荐奖励统计\n"
@@ -147,7 +158,7 @@ class WarpPlus(object):
             + f"⏳ 总耗时：{round((end - start) / 60, 2)} min",
         )
         time.sleep(retry)
-        logging.info(f"[*] 防 DD 休眠 {retry} 秒")
+        logging.info(f"[*] {name} ({user_id}) | 防 DD 休眠 {retry} 秒")
         self._bot.send_message(
             chat_id=chat_id,
             text=f"🛏 防 DD 休眠 {retry} 秒",
@@ -160,7 +171,7 @@ def start(update: Update, context: CallbackContext) -> None:
     username = update.message.from_user.username
     first_name = update.message.from_user.first_name
     name = username if username else first_name
-    logging.info(f"[+] {name} ({user_id}) 正在使用 WARP+ 推荐奖励机器人")
+    logging.info(f"[+] {name} ({user_id}) | 欢迎使用 WARP+ 推荐奖励机器人")
     context.bot.send_message(
         chat_id=chat_id,
         text=f"👋 {name}，欢迎使用 WARP+ 推荐奖励机器人\n"
