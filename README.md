@@ -1,6 +1,6 @@
 # WARP+ 推荐奖励 Telegram Bot
 
-![warpplus](https://socialify.git.ci/Oreomeow/warpplus/image?description=1&descriptionEditable=Get%20WARP%2B%20referral%20quote%20and%20notify%20users%20with%20Telegram%20Bot&font=Raleway&forks=1&issues=1&language=1&logo=https%3A%2F%2Fraw.githubusercontent.com%2FOreomeow%2Fwarpplus%2Fmain%2FLogo.png&pattern=Floating%20Cogs&pulls=1&stargazers=1&theme=Light)
+![warpplus](https://socialify.git.ci/Oreomeow/warpplus/image?description=1&descriptionEditable=Get%20WARP%2B%20referral%20quota%20and%20notify%20users%20with%20Telegram%20Bot&font=Raleway&forks=1&issues=1&language=1&logo=https%3A%2F%2Fraw.githubusercontent.com%2FOreomeow%2Fwarpplus%2Fmain%2FLogo.png&pattern=Floating%20Cogs&pulls=1&stargazers=1&theme=Light)
 
 > 利用 **Telegram Bot** 获取 **WARP+** 推荐奖励流量并通知用户
 
@@ -12,8 +12,8 @@
   - [x] 刷取结果统计
 - [x] 添加管理命令
 - [x] 支持他人刷取
+- [x] 查询当前流量
 - [ ] 设置定时任务
-- [ ] 查询当前流量
 - [ ] 支持多种语言
 
 ## 部署 (Deploy)
@@ -45,9 +45,11 @@ pip3 install -r requirements.txt
   ```json
   {
       "TOKEN": "# Telegram bot API Token (可在 @botfather 获取，如 10xxx4:AAFcqxxxxgER5uw)",
-      "REFERRER": "# WARP 应用内的设备 ID",
       "USER_ID": "# Telegram 用户 ID (给 @getidsbot 发送 /start 获取到的纯数字 ID，如 1434078534)",
-      "GIFT_LIMIT": "# 限制其他用户单次刷取次数，如 10，不限制则输入 0"
+      "GIFT_LIMIT": "# 限制其他用户单次刷取次数，如 10，不限制则输入 0",
+      "REFERRER": "# WARP 应用 (如 1.1.1.1) 内的设备 ID",
+      "ACCESS_TOKEN": "# wgcf-account.toml 中的 access_token",
+      "DEVICE_ID": "# wgcf-account.toml 中的 device_id"
   }
   ```
 
@@ -85,8 +87,9 @@ python3 warpplus.py
 
 ```text
 start - 开始使用
+query - 查询流量
 plus - (<n>) 💂‍♂️管理员账号添加流量，不输入次数视为 +∞
-bind - <referrer> 绑定账号
+bind - [点击查看具体用法] 绑定账号
 unbind - 解除绑定
 gift - (<n>) 获取流量，不输入次数视为 +∞
 stop - 💂‍♂️管理员停止运行中的任务

@@ -13,6 +13,7 @@ import re
 import string
 import time
 import urllib.request
+from typing import Optional, Union
 
 from telegram import Update, error
 from telegram.ext import CallbackContext, CommandHandler, Updater
@@ -21,21 +22,30 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
 
-with open("Config/config.json", "r") as f:
+with open("Config/config.json", "r", encoding="utf-8") as f:
     config = json.load(f)
+
 # Telegram bot API Token (可在 @botfather 获取，如 10xxx4:AAFcqxxxxgER5uw)
 TOKEN = config["TOKEN"]
-# WARP 应用内的设备 ID
-REFERRER = config["REFERRER"]
 # Telegram 用户 ID (给 @getidsbot 发送 /start 获取到的纯数字 ID，如 1434078534)
 USER_ID = int(config["USER_ID"])
 # 限制其他用户单次刷取次数，如 10，不限制则输入 0
 GIFT_LIMIT = int(config["GIFT_LIMIT"])
 
+# value 正则
+VALID = re.compile(r"^[a-z0-9]{8}-([a-z0-9]{4}-){3}[a-z0-9]{12}$")
+# WARP 应用 (如 1.1.1.1) 内的设备 ID
+REFERRER = config.get("REFERRER", None)
+# wgcf-account.toml 中的 access_token
+ACCESS_TOKEN = config.get("ACCESS_TOKEN", None)
+## wgcf-account.toml 中的 device_id
+DEVICE_ID = config.get("DEVICE_ID", None)
+
+
 RUNNING = False
 
 
-def del_msg(t: float, context: CallbackContext, chat_id: int, message_id: int) -> None:
+def del_msg(t: float, context: CallbackContext, chat_id: int, message_id: int):
     time.sleep(t)
     try:
         context.bot.delete_message(
@@ -47,33 +57,40 @@ def del_msg(t: float, context: CallbackContext, chat_id: int, message_id: int) -
 
 
 class WarpPlus(object):
-    def __init__(self, user_id: int) -> None:
+    def __init__(self, user_id: int):
         self._user_id = str(user_id)
         self._config_file = "Config/" + self._user_id + ".json"
         self._config = {}
         self._bot = None
         self._update = None
         self._message_id = None
+        self._access_token = None
+        self._device_id = None
         self._referrer = None
-        self._get_referrer()
+        self._load_config()
 
-    def _get_referrer(self) -> None:
+    def _is_valid(self, x):
+        if not x.match(VALID):
+            x = None
+
+    def _load_config(self):
         if os.path.exists(self._config_file):
-            with open(self._config_file, "r") as f:
+            with open(self._config_file, "r", encoding="utf-8") as f:
                 self._config = json.load(f)
-            self._referrer = self._config["REFERRER"]
+            self._access_token = self._config.get("ACCESS_TOKEN", None)
+            self._device_id = self._config.get("DEVICE_ID", None)
+            self._referrer = self._config.get("REFERRER", self._device_id)
+            self._is_valid(self._access_token)
+            self._is_valid(self._device_id)
+            self._is_valid(self._referrer)
 
-    def _save_referrer(
-        self, user_id: str, username: str or None, first_name: str, referrer: str
-    ) -> None:
-        self._config["USER_ID"] = user_id
-        self._config["USERNAME"] = username
-        self._config["FIRST_NAME"] = first_name
-        self._config["REFERRER"] = referrer
-        with open(self._config_file, "w") as f:
-            json.dump(self._config, f)
+    def _save_config(self, config: dict):
+        self._load_config()
+        self._config = config
+        with open(self._config_file, "w", encoding="utf-8") as f:
+            json.dump(self._config, f, ensure_ascii=False, indent=4)
 
-    def _del_referrer(self) -> bool:
+    def _del_config(self) -> bool:
         try:
             os.remove(self._config_file)
             return True
@@ -92,7 +109,15 @@ class WarpPlus(object):
     def ran_sleep(mu: float = 20.220727, sigma: float = 0.3) -> float:
         return random.gauss(mu, sigma)
 
-    def request_cf(self) -> int or str:
+    @staticmethod
+    def sizeof_fmt(num, suffix="B"):
+        for unit in ["", "K", "M", "G", "T", "P", "E", "Z"]:
+            if abs(num) < 1000.0:
+                return "%3.3f%s%s" % (num, unit, suffix)
+            num /= 1000.0
+        return "%.3f%s%s" % (num, "Y", suffix)
+
+    def increase_quota(self) -> Union[int, str]:
         try:
             install_id = self.gen_string(22)
             body = {
@@ -105,7 +130,7 @@ class WarpPlus(object):
                 "type": "Android",
                 "warp_enabled": False,
             }
-            data = json.dumps(body).encode("utf8")
+            data = json.dumps(body).encode("utf-8")
             headers = {
                 "Accept-Encoding": "gzip",
                 "Connection": "Keep-Alive",
@@ -123,17 +148,41 @@ class WarpPlus(object):
         except Exception as e:
             return str(e)
 
-    def run(self, n: float) -> None:
-        chat_id = self._update.message.chat_id
-        user_id = self._update.message.from_user.id
-        username = self._update.message.from_user.username
-        first_name = self._update.message.from_user.first_name
+    def query_account(self) -> Union[dict, str]:
+        try:
+            url = f"https://api.cloudflareclient.com/v0a{self.gen_digit(3)}/reg/{self._device_id}"
+            headers = {
+                "User-Agent": "okhttp/3.12.1",
+                "Authorization": "Bearer " + self._access_token,
+            }
+            req = urllib.request.Request(
+                url=url,
+                headers=headers,
+            )
+            with urllib.request.urlopen(req) as response:
+                return json.loads(response.read().decode("utf-8"))["account"]
+        except Exception as e:
+            return str(e)
+
+    @staticmethod
+    def is_who(update: Update, n: Optional[int] = 3) -> tuple:
+        chat_id = update.message.chat_id
+        user_id = update.message.from_user.id
+        username = update.message.from_user.username
+        first_name = update.message.from_user.first_name
         name = username if username else first_name
+        chat_type = update.message.chat.type
+        if n == 6:
+            return chat_id, user_id, username, first_name, name, chat_type
+        return chat_id, user_id, name
+
+    def run(self, n: Union[int, float]):
+        chat_id, user_id, name = self.is_who(self._update)
         g = 0
         b = 0
         start = time.time()
         while RUNNING:
-            result = self.request_cf()
+            result = self.increase_quota()
             if result == 200:
                 g += 1
                 retry = WarpPlus.ran_sleep()
@@ -212,20 +261,17 @@ class WarpPlus(object):
             )
 
 
-def start(update: Update, context: CallbackContext) -> None:
-    chat_id = update.message.chat_id
-    user_id = update.message.from_user.id
-    username = update.message.from_user.username
-    first_name = update.message.from_user.first_name
-    name = username if username else first_name
+def start(update: Update, context: CallbackContext):
+    chat_id, user_id, name = WarpPlus.is_who(update)
     logging.info(f"[+] {name} ({user_id}) | 欢迎使用 WARP+ 推荐奖励机器人")
     message_id = context.bot.send_message(
         chat_id=chat_id,
         text=f"👋 {name}，欢迎使用 WARP+ 推荐奖励机器人\n"
         + f"你可以使用以下命令来控制机器人\n\n"
         + f"/start - 开始使用\n"
+        + f"/query - 查询流量\n"
         + f"/plus - (<n>) 💂‍♂️管理员账号添加流量，不输入次数视为 +∞\n"
-        + f"/bind - <referrer> 绑定账号\n"
+        + f"/bind - [点击查看具体用法] 绑定账号\n"
         + f"/unbind - 解除绑定\n"
         + f"/gift - (<n>) 获取流量，不输入次数视为 +∞\n"
         + f"/stop - 💂‍♂️管理员停止运行中的任务\n",
@@ -233,12 +279,40 @@ def start(update: Update, context: CallbackContext) -> None:
     del_msg(10, context, chat_id, message_id)
 
 
-def plus(update: Update, context: CallbackContext) -> None:
-    chat_id = update.message.chat_id
-    user_id = update.message.from_user.id
-    username = update.message.from_user.username
-    first_name = update.message.from_user.first_name
-    name = username if username else first_name
+def query(update: Update, context: CallbackContext):
+    chat_id, user_id, name = WarpPlus.is_who(update)
+    task = WarpPlus(user_id)
+    if not task._access_token or not task._device_id:
+        logging.error(f"[\] {name} ({user_id}) | 未绑定 access_token, device_id")
+        message_id = context.bot.send_message(
+            chat_id=chat_id,
+            text=f"👾 {name} ({user_id}) | 未绑定 access_token, device_id",
+        ).message_id
+        return del_msg(5, context, chat_id, message_id)
+    try:
+        account = task.querry_account()
+        premium_data = task.sizeof_fmt(account["premium_data"])
+        quota = task.sizeof_fmt(account["quota"])
+        updated = account["updated"]
+        logging.info(
+            f"[*] {name} ({user_id}) | "
+            + f"💰 流量统计：{quota} / {premium_data}\n"
+            + f"📅 更新时间：{updated}"
+        )
+        context.bot.send_message(
+            chat_id=chat_id,
+            text=f"💰 流量统计：{quota} / {premium_data}\n" + f"📅 更新时间：{updated}",
+        )
+    except Exception as e:
+        logging.error(f"[-] {name} ({user_id}) | {e}")
+        context.bot.send_message(
+            chat_id=chat_id,
+            text=f"👾 {name} ({user_id}) | {e}",
+        )
+
+
+def plus(update: Update, context: CallbackContext):
+    chat_id, user_id, name = WarpPlus.is_who(update)
     if user_id != USER_ID:
         logging.error(f"[\] {name} ({user_id}) | /plus 仅允许管理员使用！")
         message_id = context.bot.send_message(
@@ -283,13 +357,69 @@ def plus(update: Update, context: CallbackContext) -> None:
     RUNNING = False
 
 
-def bind(update: Update, context: CallbackContext) -> None:
-    chat_id = update.message.chat_id
-    user_id = update.message.from_user.id
-    username = update.message.from_user.username
-    first_name = update.message.from_user.first_name
-    name = username if username else first_name
-    chat_type = update.message.chat.type
+def pre_bind(update: Update, context: CallbackContext) -> dict:
+    chat_id, user_id, name = WarpPlus.is_who(update)
+    data = {}
+    params = context.args
+    if len(params) == 1:
+        if params[0].match(VALID):
+            logging.info(f"[√] {name} ({user_id}) | referrer 识别成功")
+            data["REFERRER"] = params[0]
+        else:
+            logging.error(f"[×] {name} ({user_id}) | 请输入一个正确的 referrer！")
+            message_id = context.bot.send_message(
+                chat_id=chat_id,
+                text="❌ 请输入一个正确的 referrer！",
+            ).message_id
+            del_msg(5, context, chat_id, message_id)
+    elif len(params) == 2:
+        if params[0] == "t":
+            if params[1].match(VALID):
+                logging.info(f"[√] {name} ({user_id}) | access_token 识别成功")
+                data["ACCESS_TOKEN"] = params[1]
+            else:
+                logging.error(f"[×] {name} ({user_id}) | 请输入一个正确的 access_token！")
+                message_id = context.bot.send_message(
+                    chat_id=chat_id,
+                    text="❌ 请输入一个正确的 access_token！",
+                ).message_id
+                del_msg(5, context, chat_id, message_id)
+        elif params[0] == "i":
+            if params[1].match(VALID):
+                logging.info(f"[√] {name} ({user_id}) | device_id 识别成功")
+                data["DEVICE_ID"] = params[1]
+            else:
+                logging.error(f"[×] {name} ({user_id}) | 请输入一个正确的 device_id！")
+                message_id = context.bot.send_message(
+                    chat_id=chat_id,
+                    text="❌ 请输入一个正确的 device_id！",
+                ).message_id
+                del_msg(5, context, chat_id, message_id)
+        elif params[0].match(VALID) and params[1].match(VALID):
+            logging.info(f"[√] {name} ({user_id}) | access_token 和 device_id 识别成功")
+            context.bot.send_message(
+                chat_id=chat_id,
+                text="☣ 务必注意：access_token 和 device_id 是否错位！",
+            )
+            data["ACCESS_TOKEN"] = params[0]
+            data["DEVICE_ID"] = params[1]
+    else:
+        logging.error(f"[×] {name} ({user_id}) | /bind 用法")
+        message_id = context.bot.send_message(
+            chat_id=chat_id,
+            text="📔 `/bind` 用法\n\n"
+            + "`/bind` <referrer> - 绑定 WARP 应用 (如 1.1.1.1) 内的设备 ID\n"
+            + "`/bind` t <access_token> - 绑定 `wgcf-account.toml` 中的 access_token\n"
+            + "`/bind` i <device_id> - 绑定 `wgcf-account.toml` 中的 `device_id`\n"
+            + "`/bind` <access_token> <device_id> - 绑定成对\n",
+            parse_mode="Markdown",
+        ).message_id
+        del_msg(15, context, chat_id, message_id)
+    return data
+
+
+def bind(update: Update, context: CallbackContext):
+    chat_id, user_id, username, first_name, name, chat_type = WarpPlus.is_who(update, 6)
     if chat_type != "private":
         logging.error(f"[\] {name} ({user_id}) | /bind 仅允许私聊使用！")
         message_id = context.bot.send_message(
@@ -298,16 +428,14 @@ def bind(update: Update, context: CallbackContext) -> None:
             parse_mode="Markdown",
         ).message_id
         return del_msg(5, context, chat_id, message_id)
-    referrer = "".join(context.args)
-    if not re.match(r"^[a-z0-9-]{36}$", referrer):
-        logging.error(f"[×] {name} ({user_id}) | 请输入一个正确的 referrer！")
-        message_id = context.bot.send_message(
-            chat_id=chat_id,
-            text="❌ 请输入一个正确的 referrer！",
-        ).message_id
-        return del_msg(5, context, chat_id, message_id)
+    config = {"USER_ID": user_id, "USERNAME": username, "FIRST_NAME": first_name}
+    data = pre_bind(update, context)
+    if data:
+        config.update(data)
+    else:
+        return
     task = WarpPlus(user_id)
-    task._save_referrer(user_id, username, first_name, referrer)
+    task._save_config(config)
     logging.info(f"[√] {name} ({user_id}) | 绑定成功")
     context.bot.send_message(
         chat_id=chat_id,
@@ -315,14 +443,10 @@ def bind(update: Update, context: CallbackContext) -> None:
     )
 
 
-def unbind(update: Update, context: CallbackContext) -> None:
-    chat_id = update.message.chat_id
-    user_id = update.message.from_user.id
-    username = update.message.from_user.username
-    first_name = update.message.from_user.first_name
-    name = username if username else first_name
+def unbind(update: Update, context: CallbackContext):
+    chat_id, user_id, name = WarpPlus.is_who(update)
     task = WarpPlus(user_id)
-    if task._del_referrer():
+    if task._del_config():
         logging.info(f"[√] {name} ({user_id}) | 解绑成功")
         context.bot.send_message(
             chat_id=chat_id,
@@ -336,12 +460,8 @@ def unbind(update: Update, context: CallbackContext) -> None:
         )
 
 
-def gift(update: Update, context: CallbackContext) -> None:
-    chat_id = update.message.chat_id
-    user_id = update.message.from_user.id
-    username = update.message.from_user.username
-    first_name = update.message.from_user.first_name
-    name = username if username else first_name
+def gift(update: Update, context: CallbackContext):
+    chat_id, user_id, name = WarpPlus.is_who(update)
     global RUNNING
     if RUNNING == True:
         logging.error(f"[\] {name} ({user_id}) | 请先 /stop 停止正在运行的任务！")
@@ -413,12 +533,8 @@ def gift(update: Update, context: CallbackContext) -> None:
     RUNNING = False
 
 
-def stop(update: Update, context: CallbackContext) -> None:
-    chat_id = update.message.chat_id
-    user_id = update.message.from_user.id
-    username = update.message.from_user.username
-    first_name = update.message.from_user.first_name
-    name = username if username else first_name
+def stop(update: Update, context: CallbackContext):
+    chat_id, user_id, name = WarpPlus.is_who(update)
     if user_id != USER_ID:
         logging.error(f"[\] {name} ({user_id}) | /stop 只允许管理员使用！")
         message_id = context.bot.send_message(
@@ -442,6 +558,7 @@ def main():
     dp = updater.dispatcher
     dp.add_handler(CommandHandler("start", start, run_async=True))
     dp.add_handler(CommandHandler("plus", plus, run_async=True))
+    dp.add_handler(CommandHandler("query", query, run_async=True))
     dp.add_handler(CommandHandler("bind", bind, run_async=True))
     dp.add_handler(CommandHandler("unbind", unbind, run_async=True))
     dp.add_handler(CommandHandler("gift", gift, run_async=True))
