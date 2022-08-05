@@ -69,8 +69,8 @@ class WarpPlus(object):
         self._referrer = None
         self._load_config()
 
-    def _is_valid(self, x):
-        if not x.match(VALID):
+    def _is_valid(self, x: str):
+        if x and not VALID.match(x):
             x = None
 
     def _load_config(self):
@@ -267,14 +267,14 @@ def start(update: Update, context: CallbackContext):
     message_id = context.bot.send_message(
         chat_id=chat_id,
         text=f"👋 {name}，欢迎使用 WARP+ 推荐奖励机器人\n"
-        + f"你可以使用以下命令来控制机器人\n\n"
-        + f"/start - 开始使用\n"
-        + f"/query - 查询流量\n"
-        + f"/plus - (<n>) 💂‍♂️管理员账号添加流量，不输入次数视为 +∞\n"
-        + f"/bind - [点击查看具体用法] 绑定账号\n"
-        + f"/unbind - 解除绑定\n"
-        + f"/gift - (<n>) 获取流量，不输入次数视为 +∞\n"
-        + f"/stop - 💂‍♂️管理员停止运行中的任务\n",
+        + "你可以使用以下命令来控制机器人\n\n"
+        + "/start - 开始使用\n"
+        + "/query - 查询流量\n"
+        + "/plus - (<n>) 💂‍♂️管理员账号添加流量，不输入次数视为 +∞\n"
+        + "/bind - [点击查看具体用法] 绑定账号\n"
+        + "/unbind - 解除绑定\n"
+        + "/gift - (<n>) 获取流量，不输入次数视为 +∞\n"
+        + "/stop - 💂‍♂️管理员停止运行中的任务\n",
     ).message_id
     del_msg(10, context, chat_id, message_id)
 
@@ -290,7 +290,7 @@ def query(update: Update, context: CallbackContext):
         ).message_id
         return del_msg(5, context, chat_id, message_id)
     try:
-        account = task.querry_account()
+        account = task.query_account()
         premium_data = task.sizeof_fmt(account["premium_data"])
         quota = task.sizeof_fmt(account["quota"])
         updated = account["updated"]
@@ -357,67 +357,6 @@ def plus(update: Update, context: CallbackContext):
     RUNNING = False
 
 
-def pre_bind(update: Update, context: CallbackContext) -> dict:
-    chat_id, user_id, name = WarpPlus.is_who(update)
-    data = {}
-    params = context.args
-    if len(params) == 1:
-        if params[0].match(VALID):
-            logging.info(f"[√] {name} ({user_id}) | referrer 识别成功")
-            data["REFERRER"] = params[0]
-        else:
-            logging.error(f"[×] {name} ({user_id}) | 请输入一个正确的 referrer！")
-            message_id = context.bot.send_message(
-                chat_id=chat_id,
-                text="❌ 请输入一个正确的 referrer！",
-            ).message_id
-            del_msg(5, context, chat_id, message_id)
-    elif len(params) == 2:
-        if params[0] == "t":
-            if params[1].match(VALID):
-                logging.info(f"[√] {name} ({user_id}) | access_token 识别成功")
-                data["ACCESS_TOKEN"] = params[1]
-            else:
-                logging.error(f"[×] {name} ({user_id}) | 请输入一个正确的 access_token！")
-                message_id = context.bot.send_message(
-                    chat_id=chat_id,
-                    text="❌ 请输入一个正确的 access_token！",
-                ).message_id
-                del_msg(5, context, chat_id, message_id)
-        elif params[0] == "i":
-            if params[1].match(VALID):
-                logging.info(f"[√] {name} ({user_id}) | device_id 识别成功")
-                data["DEVICE_ID"] = params[1]
-            else:
-                logging.error(f"[×] {name} ({user_id}) | 请输入一个正确的 device_id！")
-                message_id = context.bot.send_message(
-                    chat_id=chat_id,
-                    text="❌ 请输入一个正确的 device_id！",
-                ).message_id
-                del_msg(5, context, chat_id, message_id)
-        elif params[0].match(VALID) and params[1].match(VALID):
-            logging.info(f"[√] {name} ({user_id}) | access_token 和 device_id 识别成功")
-            context.bot.send_message(
-                chat_id=chat_id,
-                text="☣ 务必注意：access_token 和 device_id 是否错位！",
-            )
-            data["ACCESS_TOKEN"] = params[0]
-            data["DEVICE_ID"] = params[1]
-    else:
-        logging.error(f"[×] {name} ({user_id}) | /bind 用法")
-        message_id = context.bot.send_message(
-            chat_id=chat_id,
-            text="📔 `/bind` 用法\n\n"
-            + "`/bind` <referrer> - 绑定 WARP 应用 (如 1.1.1.1) 内的设备 ID\n"
-            + "`/bind` t <access_token> - 绑定 `wgcf-account.toml` 中的 access_token\n"
-            + "`/bind` i <device_id> - 绑定 `wgcf-account.toml` 中的 `device_id`\n"
-            + "`/bind` <access_token> <device_id> - 绑定成对\n",
-            parse_mode="Markdown",
-        ).message_id
-        del_msg(15, context, chat_id, message_id)
-    return data
-
-
 def bind(update: Update, context: CallbackContext):
     chat_id, user_id, username, first_name, name, chat_type = WarpPlus.is_who(update, 6)
     if chat_type != "private":
@@ -429,11 +368,61 @@ def bind(update: Update, context: CallbackContext):
         ).message_id
         return del_msg(5, context, chat_id, message_id)
     config = {"USER_ID": user_id, "USERNAME": username, "FIRST_NAME": first_name}
-    data = pre_bind(update, context)
-    if data:
-        config.update(data)
+    params = context.args
+    if len(params) == 1:
+        if VALID.match(params[0]):
+            logging.info(f"[√] {name} ({user_id}) | referrer 识别成功")
+            config["REFERRER"] = params[0]
+        else:
+            logging.error(f"[×] {name} ({user_id}) | 请输入一个正确的 referrer！")
+            message_id = context.bot.send_message(
+                chat_id=chat_id,
+                text="❌ 请输入一个正确的 referrer！",
+            ).message_id
+            return del_msg(5, context, chat_id, message_id)
+    elif len(params) == 2:
+        if params[0] == "t":
+            if VALID.match(params[1]):
+                logging.info(f"[√] {name} ({user_id}) | access_token 识别成功")
+                config["ACCESS_TOKEN"] = params[1]
+            else:
+                logging.error(f"[×] {name} ({user_id}) | 请输入一个正确的 access_token！")
+                message_id = context.bot.send_message(
+                    chat_id=chat_id,
+                    text="❌ 请输入一个正确的 access_token！",
+                ).message_id
+                return del_msg(5, context, chat_id, message_id)
+        elif params[0] == "i":
+            if VALID.match(params[1]):
+                logging.info(f"[√] {name} ({user_id}) | device_id 识别成功")
+                config["DEVICE_ID"] = params[1]
+            else:
+                logging.error(f"[×] {name} ({user_id}) | 请输入一个正确的 device_id！")
+                message_id = context.bot.send_message(
+                    chat_id=chat_id,
+                    text="❌ 请输入一个正确的 device_id！",
+                ).message_id
+                return del_msg(5, context, chat_id, message_id)
+        elif VALID.match(params[0]) and VALID.match(params[1]):
+            logging.info(f"[√] {name} ({user_id}) | access_token 和 device_id 识别成功")
+            context.bot.send_message(
+                chat_id=chat_id,
+                text="☣ 务必注意：access_token 和 device_id 是否错位！",
+            )
+            config["ACCESS_TOKEN"] = params[0]
+            config["DEVICE_ID"] = params[1]
     else:
-        return
+        logging.error(f"[×] {name} ({user_id}) | /bind 用法")
+        message_id = context.bot.send_message(
+            chat_id=chat_id,
+            text="📔 `/bind` 用法\n\n"
+            + "`/bind` <referrer> - 绑定 WARP 应用 (如 1.1.1.1) 内的设备 ID\n"
+            + "`/bind` t <access\_token> - 绑定 `wgcf-account.toml` 中的 `access_token`\n"
+            + "`/bind` i <device\_id> - 绑定 `wgcf-account.toml` 中的 `device_id`\n"
+            + "`/bind` <access\_token> <device\_id> - 绑定成对",
+            parse_mode="Markdown",
+        ).message_id
+        return del_msg(15, context, chat_id, message_id)
     task = WarpPlus(user_id)
     task._save_config(config)
     logging.info(f"[√] {name} ({user_id}) | 绑定成功")
