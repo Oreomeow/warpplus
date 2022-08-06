@@ -40,7 +40,7 @@ pip3 install -r requirements.txt
 
   [![WARP APP 图示](https://user-images.githubusercontent.com/62703343/136070323-47f2600a-13e4-4eb0-a64d-d7eb805c28e2.png)](https://github.com/fscarmen/warp)
 
-- 修改 `config.json`
+- 根据 `config.example.json` 在同目录生成 `config.json` 配置文件
 
   ```json
   {
@@ -48,8 +48,6 @@ pip3 install -r requirements.txt
       "USER_ID": "# Telegram 用户 ID (给 @getidsbot 发送 /start 获取到的纯数字 ID，如 1434078534)",
       "GIFT_LIMIT": "# 限制其他用户单次刷取次数，如 10，不限制则输入 0",
       "REFERRER": "# WARP 应用 (如 1.1.1.1) 内的设备 ID",
-      "ACCESS_TOKEN": "# wgcf-account.toml 中的 access_token",
-      "DEVICE_ID": "# wgcf-account.toml 中的 device_id"
   }
   ```
 
