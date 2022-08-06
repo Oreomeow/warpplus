@@ -97,7 +97,7 @@ class WarpPlus(object):
         return random.gauss(mu, sigma)
 
     @staticmethod
-    def sizeof_fmt(num, suffix="B"):
+    def sizeof_fmt(num, suffix="B") -> str:
         for unit in ["", "K", "M", "G", "T", "P", "E", "Z"]:
             if abs(num) < 1000.0:
                 return "%3.3f %s%s" % (num, unit, suffix)
