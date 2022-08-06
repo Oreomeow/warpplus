@@ -261,7 +261,8 @@ def start(update: Update, context: CallbackContext):
         + "/bind - [点击查看具体用法] 绑定账号\n"
         + "/unbind - 解除绑定\n"
         + "/gift - (<n>) 获取流量，不输入次数视为 +∞\n"
-        + "/stop - 💂‍♂️管理员停止运行中的任务\n",
+        + "/stop - 💂‍♂️管理员停止运行中的任务\n\n"
+        + "开源仓库：https://github.com/Oreomeow/warpplus",
     ).message_id
     del_msg(60, context, chat_id, message_id)
 
@@ -398,6 +399,13 @@ def bind(update: Update, context: CallbackContext):
             )
             config["ACCESS_TOKEN"] = params[0]
             config["DEVICE_ID"] = params[1]
+        else:
+            logging.error(f"[×] {name} ({user_id}) | access_token 和 device_id 识别失败")
+            message_id = context.bot.send_message(
+                chat_id=chat_id,
+                text="❌ access_token 和 device_id 识别失败，请使用 /bind 查看用法",
+            ).message_id
+            return del_msg(10, context, chat_id, message_id)
     else:
         logging.error(f"[×] {name} ({user_id}) | /bind 用法")
         message_id = context.bot.send_message(
