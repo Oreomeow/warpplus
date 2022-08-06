@@ -61,25 +61,133 @@ python3 warpplus.py
 
 ### 持久化运行
 
-使用 `tmux` 或者 `screen` 运行。例如 `tmux` 安装：
+从以下方法中任选其一即可，或参考 [Linux 守护进程的启动方法](https://www.ruanyifeng.com/blog/2016/02/linux-daemon.html)
 
-```bash
-# Debian or Ubuntu
-apt install tmux
+- [Systemd](https://www.ruanyifeng.com/blog/2016/03/systemd-tutorial-commands.html) (推荐)
 
-# CentOS or RedHat
-yum install tmux
+  一键脚本
+
+  ```bash
+  bash install.sh
+  ```
+
+  查看 `warpplus` 状态
+
+  ```bash
+  systemctl status warpplus
+  ```
+
+  查看 `warpplus` 日志
+
+  ```bash
+  journalctl -u warpplus
+  ```
+
+  启动 `warpplus`
+
+  ```bash
+  systemctl start warpplus
+  ```
+
+  停止 `warpplus`
+
+  ```bash
+  systemctl stop warpplus
+  ```
+
+  重启 `warpplus`
+
+  ```bash
+  systemctl restart warpplus
+  ```
+
+  杀死 `warpplus` 所有子进程
+  
+  ```bash
+  systemctl kill warpplus
+  ```
+
+- [nohup](https://www.runoob.com/linux/linux-comm-nohup.html)
+
+  ```bash
+  nohup python3 warpplus.py > warpplus.log 2>&1 &
+  ```
+
+  查看日志
+
+  ```bash
+  tail -f warpplus.log
+  ```
+
+- [Screen](https://www.runoob.com/linux/linux-comm-screen.html)
+
+  1. 创建会话
+
+     ```bash
+     screen -S warpplus
+     python3 warpplus.py
+     ```
+
+     然后，按下 `Ctrl + A` 和 `Ctrl + D` ，回到原来的会话
+
+  2. 如果要查看日志，可以使用 `screen -r warpplus` ；如果要停掉会话，按下 `Ctrl + C` 和 `Ctrl + D`
+
+- [Tmux](http://www.ruanyifeng.com/blog/2019/10/tmux.html)
+
+  1. 安装
+
+     ```bash
+     # Debian or Ubuntu
+     apt install -y tmux
+
+     # CentOS or RedHat
+     yum install -y tmux
+     ```
+
+  2. 新建会话
+
+     ```bash
+     tmux new -s warpplus
+     python3 warpplus.py
+     ```
+
+  3. 分离会话
+
+     ```bash
+     tmux detach
+     ```
+
+     或键盘按下 `Ctrl + B D` 即可将当前会话与窗口分离
+
+  4. 如果要查看日志，可以使用 `tmux attach -t warpplus` ；如果要杀死会话 `tmux kill-session -t warpplus`
+
+### `/bind` 命令说明
+
+```text
+/bind <referrer> - 绑定 WARP 应用 (如 1.1.1.1) 内的设备 ID
+/bind t <access_token> - 绑定 wgcf-account.toml 中的 access_token
+/bind i <device_id> - 绑定 wgcf-account.toml 中的 device_id
+/bind <access_token> <device_id> - 绑定成对
 ```
 
-`tmux` 使用：
+其中 `<referrer>` 和 `<device_id>` 其实是同一个，只是 `<referrer>` 可以在手机 APP `1.1.1.1` 中找到，而从 `wgcf-account.toml` 提取的 `<access_token>` 和 `<device_id>` 必须绑定成对，否则无法进行流量查询
+
+在安装了 [wgcf](https://github.com/ViRb3/wgcf) 的机器上可以使用 `Scripts/get.sh` 进行快捷提取
+
+也可以运行以下命令提取
 
 ```bash
-tmux new -s warpplus
-cd warpplus
-python3 warpplus.py
-```
+if ! [ -f '/etc/wireguard/wgcf-account.toml' ]; then
+    echo "wgcf-account.toml 文件不存在，请查看是否已安装 wgcf。相关仓库 https://github.com/fscarmen/warp"
+else
+    ACCESS_TOKEN=$(grep 'access_token' /etc/wireguard/wgcf-account.toml | cut -d \' -f2)
+    DEVICE_ID=$(grep 'device_id' /etc/wireguard/wgcf-account.toml | cut -d \' -f2)
 
-然后键盘按下 `Ctrl + B D` 即可 detach 当前窗口。
+    echo "====================== 请复制以下内容 (不包括此行) ======================"
+    echo "${ACCESS_TOKEN} ${DEVICE_ID}"
+    echo "====================== 请复制以上内容 (不包括此行) ======================"
+fi
+```
 
 ## 命令 (Commands)
 
