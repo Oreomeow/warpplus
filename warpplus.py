@@ -31,17 +31,11 @@ TOKEN = config["TOKEN"]
 USER_ID = int(config["USER_ID"])
 # 限制其他用户单次刷取次数，如 10，不限制则输入 0
 GIFT_LIMIT = int(config["GIFT_LIMIT"])
+# WARP 应用 (如 1.1.1.1) 内的设备 ID
+REFERRER = config["REFERRER"]
 
 # value 正则
 VALID = re.compile(r"^[a-z0-9]{8}-([a-z0-9]{4}-){3}[a-z0-9]{12}$")
-# WARP 应用 (如 1.1.1.1) 内的设备 ID
-REFERRER = config.get("REFERRER", None)
-# wgcf-account.toml 中的 access_token
-ACCESS_TOKEN = config.get("ACCESS_TOKEN", None)
-## wgcf-account.toml 中的 device_id
-DEVICE_ID = config.get("DEVICE_ID", None)
-
-
 RUNNING = False
 
 
@@ -69,10 +63,6 @@ class WarpPlus(object):
         self._referrer = None
         self._load_config()
 
-    def _is_valid(self, x: str):
-        if x and not VALID.match(x):
-            x = None
-
     def _load_config(self):
         if os.path.exists(self._config_file):
             with open(self._config_file, "r", encoding="utf-8") as f:
@@ -80,9 +70,6 @@ class WarpPlus(object):
             self._access_token = self._config.get("ACCESS_TOKEN", None)
             self._device_id = self._config.get("DEVICE_ID", None)
             self._referrer = self._config.get("REFERRER", self._device_id)
-            self._is_valid(self._access_token)
-            self._is_valid(self._device_id)
-            self._is_valid(self._referrer)
 
     def _save_config(self, config: dict):
         self._load_config()
@@ -113,9 +100,9 @@ class WarpPlus(object):
     def sizeof_fmt(num, suffix="B"):
         for unit in ["", "K", "M", "G", "T", "P", "E", "Z"]:
             if abs(num) < 1000.0:
-                return "%3.3f%s%s" % (num, unit, suffix)
+                return "%3.3f %s%s" % (num, unit, suffix)
             num /= 1000.0
-        return "%.3f%s%s" % (num, "Y", suffix)
+        return "%.3f %s%s" % (num, "Y", suffix)
 
     def increase_quota(self) -> Union[int, str]:
         try:
@@ -276,7 +263,7 @@ def start(update: Update, context: CallbackContext):
         + "/gift - (<n>) 获取流量，不输入次数视为 +∞\n"
         + "/stop - 💂‍♂️管理员停止运行中的任务\n",
     ).message_id
-    del_msg(10, context, chat_id, message_id)
+    del_msg(60, context, chat_id, message_id)
 
 
 def query(update: Update, context: CallbackContext):
@@ -422,7 +409,7 @@ def bind(update: Update, context: CallbackContext):
             + "`/bind` <access\_token> <device\_id> - 绑定成对",
             parse_mode="Markdown",
         ).message_id
-        return del_msg(15, context, chat_id, message_id)
+        return del_msg(60, context, chat_id, message_id)
     task = WarpPlus(user_id)
     task._save_config(config)
     logging.info(f"[√] {name} ({user_id}) | 绑定成功")
