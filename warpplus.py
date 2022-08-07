@@ -39,7 +39,9 @@ VALID = re.compile(r"^[a-z0-9]{8}-([a-z0-9]{4}-){3}[a-z0-9]{12}$")
 RUNNING = False
 
 
-def del_msg(t: float, context: CallbackContext, chat_id: int, message_id: int):
+def del_msg(
+    t: Union[int, float], context: CallbackContext, chat_id: int, message_id: int
+):
     time.sleep(t)
     try:
         context.bot.delete_message(
@@ -84,11 +86,13 @@ class WarpPlus(object):
         except FileNotFoundError:
             return False
 
-    def gen_string(self, num: int) -> str:
+    @staticmethod
+    def gen_string(num: int) -> str:
         c = string.ascii_letters + string.digits
         return "".join(random.choice(c) for _ in range(num))
 
-    def gen_digit(self, num: int) -> str:
+    @staticmethod
+    def gen_digit(num: int) -> str:
         d = string.digits
         return "".join(random.choice(d) for _ in range(num))
 
@@ -97,12 +101,24 @@ class WarpPlus(object):
         return random.gauss(mu, sigma)
 
     @staticmethod
-    def sizeof_fmt(num, suffix="B") -> str:
+    def sizeof_fmt(num: Union[int, float], suffix: str = "B") -> str:
         for unit in ["", "K", "M", "G", "T", "P", "E", "Z"]:
             if abs(num) < 1000.0:
                 return "%3.3f %s%s" % (num, unit, suffix)
             num /= 1000.0
         return "%.3f %s%s" % (num, "Y", suffix)
+
+    @staticmethod
+    def is_who(update: Update, n: Optional[int] = 3) -> tuple:
+        chat_id = update.message.chat_id
+        user_id = update.message.from_user.id
+        username = update.message.from_user.username
+        first_name = update.message.from_user.first_name
+        name = username if username else first_name
+        chat_type = update.message.chat.type
+        if n == 6:
+            return chat_id, user_id, username, first_name, name, chat_type
+        return chat_id, user_id, name
 
     def increase_quota(self) -> Union[int, str]:
         try:
@@ -150,18 +166,6 @@ class WarpPlus(object):
                 return json.loads(response.read().decode("utf-8"))["account"]
         except Exception as e:
             return str(e)
-
-    @staticmethod
-    def is_who(update: Update, n: Optional[int] = 3) -> tuple:
-        chat_id = update.message.chat_id
-        user_id = update.message.from_user.id
-        username = update.message.from_user.username
-        first_name = update.message.from_user.first_name
-        name = username if username else first_name
-        chat_type = update.message.chat.type
-        if n == 6:
-            return chat_id, user_id, username, first_name, name, chat_type
-        return chat_id, user_id, name
 
     def run(self, n: Union[int, float]):
         chat_id, user_id, name = self.is_who(self._update)
@@ -310,7 +314,7 @@ def plus(update: Update, context: CallbackContext):
         ).message_id
         return del_msg(5, context, chat_id, message_id)
     global RUNNING
-    if RUNNING == True:
+    if RUNNING:
         logging.error(f"[\] {name} ({user_id}) | 请先 /stop 停止正在运行的任务！")
         message_id = context.bot.send_message(
             chat_id=chat_id,
@@ -447,7 +451,7 @@ def unbind(update: Update, context: CallbackContext):
 def gift(update: Update, context: CallbackContext):
     chat_id, user_id, name = WarpPlus.is_who(update)
     global RUNNING
-    if RUNNING == True:
+    if RUNNING:
         logging.error(f"[\] {name} ({user_id}) | 请先 /stop 停止正在运行的任务！")
         message_id = context.bot.send_message(
             chat_id=chat_id,
@@ -528,7 +532,7 @@ def stop(update: Update, context: CallbackContext):
         ).message_id
         return del_msg(5, context, chat_id, message_id)
     global RUNNING
-    if RUNNING == True:
+    if RUNNING:
         logging.info(f"[-] {name} ({user_id}) | WARP+ 推荐奖励任务终止")
         context.bot.send_message(chat_id=chat_id, text="🛑 WARP+ 推荐奖励任务终止")
         RUNNING = False
