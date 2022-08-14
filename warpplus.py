@@ -288,8 +288,8 @@ def query(update: Update, context: CallbackContext):
         updated = account["updated"]
         logging.info(
             f"[*] {name} ({user_id}) | "
-            + f"💰 流量统计：{quota} / {premium_data}\n"
-            + f"📅 更新时间：{updated}"
+            + f"流量统计：{quota} / {premium_data}\n"
+            + f"更新时间：{updated}"
         )
         context.bot.send_message(
             chat_id=chat_id,
@@ -344,7 +344,16 @@ def plus(update: Update, context: CallbackContext):
     task._bot = context.bot
     task._update = update
     task._referrer = REFERRER
-    RUNNING = True
+    if RUNNING:
+        logging.error(f"[\] {name} ({user_id}) | 手速不够快，被抢先了一步！")
+        message_id = context.bot.send_message(
+            chat_id=chat_id,
+            text="🚫 手速不够快，被抢先了一步！",
+            parse_mode="Markdown",
+        ).message_id
+        return del_msg(5, context, chat_id, message_id)
+    else:
+        RUNNING = True
     task.run(n)
     RUNNING = False
 
@@ -516,7 +525,16 @@ def gift(update: Update, context: CallbackContext):
                 pass
             return
         logging.info(f"[*] {name} ({user_id}) | 将进行 {n} 次请求")
-    RUNNING = True
+    if RUNNING:
+        logging.error(f"[\] {name} ({user_id}) | 手速不够快，被抢先了一步！")
+        message_id = context.bot.send_message(
+            chat_id=chat_id,
+            text="🚫 手速不够快，被抢先了一步！",
+            parse_mode="Markdown",
+        ).message_id
+        return del_msg(5, context, chat_id, message_id)
+    else:
+        RUNNING = True
     task.run(n)
     RUNNING = False
 
